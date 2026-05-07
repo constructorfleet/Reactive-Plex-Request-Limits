@@ -1,7 +1,11 @@
 FROM python:3.12-slim AS runtime
 
+ARG VERSION=dev
+LABEL org.opencontainers.image.version=${VERSION}
+
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    VERSION=${VERSION}
 
 WORKDIR /app
 
