@@ -14,6 +14,7 @@ dependencies = [
 dev = [
   "build>=1.2.0",
   "pytest>=8.0.0",
+  "pytest-cov>=7.0.0",
   "responses>=0.25.0",
   "ruff>=0.8.0",
 ]
@@ -27,6 +28,21 @@ build-backend = "setuptools.build_meta"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = [
+  "--cov=request_shock",
+  "--cov=tools",
+  "--cov-report=term-missing",
+  "--cov-report=markdown:coverage.md",
+  "--cov-fail-under=85",
+]
+
+[tool.coverage.run]
+branch = true
+
+[tool.coverage.report]
+omit = ["request_shock/__main__.py"]
+show_missing = true
+skip_covered = true
 
 [tool.ruff]
 line-length = 120

@@ -4,6 +4,8 @@ services:
     build:
       context: .
       target: runtime
+      args:
+        VERSION: "${REQUEST_SHOCK_VERSION:-dev}"
     container_name: request-shock
     restart: "no"
     volumes:

@@ -1,9 +1,12 @@
 {
   "name": "request-shock",
-  "build": {
-    "dockerfile": "../Dockerfile",
-    "context": "..",
-    "target": "dev"
+  "image": "ghcr.io/astral-sh/uv:python3.12-bookworm-slim",
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": true,
+      "configureZshAsDefaultShell": true
+    },
+    "ghcr.io/devcontainers/features/git:1": {}
   },
   "remoteUser": "root",
   "mounts": [
@@ -11,9 +14,10 @@
     "source=/run/host-services/ssh-auth.sock,target=/run/host-services/ssh-auth.sock,type=bind"
   ],
   "containerEnv": {
-    "SSH_AUTH_SOCK": "/run/host-services/ssh-auth.sock"
+    "SSH_AUTH_SOCK": "/run/host-services/ssh-auth.sock",
+    "UV_LINK_MODE": "copy"
   },
-  "postCreateCommand": "pip install -e '.[dev]'",
+  "postCreateCommand": "uv sync --extra dev",
   "customizations": {
     "vscode": {
       "extensions": [
@@ -21,9 +25,10 @@
         "ms-python.python"
       ],
       "settings": {
-        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.defaultInterpreterPath": "${containerWorkspaceFolder}/.venv/bin/python",
         "python.testing.pytestEnabled": true,
-        "python.testing.unittestEnabled": false
+        "python.testing.unittestEnabled": false,
+        "terminal.integrated.defaultProfile.linux": "zsh"
       }
     }
   }

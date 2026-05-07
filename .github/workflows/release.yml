@@ -25,14 +25,16 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Python
-        uses: actions/setup-python@v6
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
         with:
-          python-version: "3.12"
-          cache: pip
+          enable-cache: true
+
+      - name: Install Python
+        run: uv python install 3.12
 
       - name: Install dependencies
-        run: python -m pip install -e '.[dev]'
+        run: uv sync --extra dev
 
       - name: Collect PR labels
         id: labels
@@ -47,15 +49,16 @@ jobs:
         env:
           PR_LABELS: ${{ steps.labels.outputs.labels }}
         run: |
-          version="$(python -m tools.bump_version --labels "$PR_LABELS")"
+          uv run python -m tools.validate_release_labels --labels "$PR_LABELS"
+          version="$(uv run python -m tools.bump_version --labels "$PR_LABELS")"
           echo "version=${version}" >> "$GITHUB_OUTPUT"
 
       - name: Validate
         run: |
-          ruff check .
-          ruff format --check .
-          python -m pytest -q
-          python -m build
+          uv run ruff check .
+          uv run ruff format --check .
+          uv run python -m pytest -q
+          uv build
 
       - name: Commit version bump
         run: |
@@ -82,6 +85,8 @@ jobs:
         with:
           context: .
           push: true
+          build-args: |
+            VERSION=${{ steps.version.outputs.version }}
           tags: |
             ghcr.io/${{ github.repository }}:latest
             ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }}
