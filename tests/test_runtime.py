@@ -1,6 +1,6 @@
+import sys
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-import sys
 
 from request_shock import cli
 from request_shock.cli import (

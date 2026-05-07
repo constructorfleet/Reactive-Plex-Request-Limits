@@ -49,6 +49,7 @@ jobs:
         env:
           PR_LABELS: ${{ steps.labels.outputs.labels }}
         run: |
+          uv run python -m tools.validate_release_labels --labels "$PR_LABELS"
           version="$(uv run python -m tools.bump_version --labels "$PR_LABELS")"
           echo "version=${version}" >> "$GITHUB_OUTPUT"
 

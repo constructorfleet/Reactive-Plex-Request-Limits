@@ -14,7 +14,7 @@ from request_shock.clients import (
     _to_watch,
 )
 from request_shock.config import load_config
-from request_shock.policy import Limits, StateEntry
+from request_shock.policy import Limits
 from request_shock.state import load_state, save_state, updated_entry
 
 
