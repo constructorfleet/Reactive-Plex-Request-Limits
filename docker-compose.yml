@@ -1,0 +1,16 @@
+services:
+  request-shock:
+    image: "${REQUEST_SHOCK_IMAGE:-request-shock:local}"
+    build:
+      context: .
+      target: runtime
+    container_name: request-shock
+    restart: "no"
+    volumes:
+      - "${REQUEST_SHOCK_CONFIG:-./config.yml}:/config.yml:ro"
+      - "${REQUEST_SHOCK_STATE:-./request-shock-state.json}:/request-shock-state.json"
+    command:
+      - "--config"
+      - "/config.yml"
+      - "--state"
+      - "/request-shock-state.json"

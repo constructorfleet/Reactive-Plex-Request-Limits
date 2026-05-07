@@ -1,0 +1,50 @@
+overseerr:
+  url: "http://localhost:5055"
+  api_key: "replace-me"
+
+tautulli:
+  url: "http://localhost:8181"
+  api_key: "replace-me"
+  verify_ssl: true
+  history_length: 1000
+
+ignore_user_ids:
+  - 1
+
+exempt_users:
+  ids: []
+  usernames: []
+  plex_usernames: []
+  emails: []
+
+notifications:
+  tautulli_notifier_ids: []
+  subject: "Overseerr request limits updated"
+  body: "Ah ah ah, {username}. Your request limits have been throttled: {movie_limit} movies per {movie_days} days and {tv_limit} TV season per {tv_days} days."
+
+policy:
+  normal_limits:
+    movie_limit: 5
+    movie_days: 3
+    tv_limit: 1
+    tv_days: 7
+  warning_limits:
+    movie_limit: 3
+    movie_days: 7
+    tv_limit: 1
+    tv_days: 14
+  restricted_limits:
+    movie_limit: 1
+    movie_days: 14
+    tv_limit: 1
+    tv_days: 30
+  movie_grace_days: 14
+  tv_grace_days: 21
+  min_movie_fraction: 0.75
+  min_tv_fraction: 0.2
+  min_tv_episodes: 3
+  lookback_days: 90
+  warning_score: 1
+  restricted_score: 3
+  recovery_per_run: 1
+  max_score: 10
