@@ -3,17 +3,27 @@ from pathlib import Path
 from tools.bump_version import bump_version, determine_bump, update_pyproject_version
 
 
-def test_determine_bump_uses_highest_priority_label():
-    assert determine_bump(["patch", "minor"]) == "minor"
-    assert determine_bump(["major", "minor"]) == "major"
-    assert determine_bump(["breaking", "patch"]) == "major"
+def test_determine_bump_uses_single_release_label():
+    assert determine_bump(["patch"]) == "patch"
+    assert determine_bump(["minor"]) == "minor"
+    assert determine_bump(["major"]) == "major"
+    assert determine_bump(["breaking"]) == "major"
 
 
 def test_determine_bump_requires_release_label():
     try:
         determine_bump(["documentation"])
     except ValueError as error:
-        assert "patch, minor, major, or breaking" in str(error)
+        assert "exactly one release label" in str(error)
+    else:
+        raise AssertionError("expected ValueError")
+
+
+def test_determine_bump_rejects_multiple_release_labels():
+    try:
+        determine_bump(["patch", "minor"])
+    except ValueError as error:
+        assert "exactly one release label" in str(error)
     else:
         raise AssertionError("expected ValueError")
 

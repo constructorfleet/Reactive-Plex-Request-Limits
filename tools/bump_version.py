@@ -4,20 +4,11 @@ import argparse
 import re
 from pathlib import Path
 
-PRIORITY = {
-    "patch": 1,
-    "minor": 2,
-    "major": 3,
-    "breaking": 3,
-}
+from tools.release_labels import validate_release_labels
 
 
 def determine_bump(labels: list[str]) -> str:
-    normalized = [label.strip().lower() for label in labels]
-    selected = [label for label in normalized if label in PRIORITY]
-    if not selected:
-        raise ValueError("PR must have one of these release labels: patch, minor, major, or breaking")
-    bump = max(selected, key=lambda label: PRIORITY[label])
+    bump = validate_release_labels(labels)
     return "major" if bump == "breaking" else bump
 
 
