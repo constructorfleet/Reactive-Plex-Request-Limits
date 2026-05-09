@@ -208,25 +208,54 @@ def test_overseerr_client_wraps_library(monkeypatch):
 def test_tautulli_client_wraps_raw_api(monkeypatch):
     calls = {}
 
-    class FakeRawAPI:
-        def __init__(self, base_url, api_key, ssl_verify, verify):
-            calls["init"] = (base_url, api_key, ssl_verify, verify)
+    class FakeResponse:
+        def __init__(self, payload):
+            self._payload = payload
 
-        def get_history(self, **kwargs):
-            calls["history"] = kwargs
-            return {"data": {"data": [{"user_id": 7, "media_type": "movie", "title": "Movie", "date": 0}]}}
+        def raise_for_status(self):
+            calls["raise_for_status"] = calls.get("raise_for_status", 0) + 1
 
-        def notify(self, notifier_id, subject, body):
-            calls["notify"] = (notifier_id, subject, body)
+        def json(self):
+            return self._payload
 
-    monkeypatch.setattr("request_shock.clients.RawAPI", FakeRawAPI)
+    class FakeSession:
+        def get(self, url, params, timeout, verify):
+            calls.setdefault("get", []).append(
+                {
+                    "url": url,
+                    "params": params,
+                    "timeout": timeout,
+                    "verify": verify,
+                }
+            )
+            if params["cmd"] == "get_history":
+                return FakeResponse(
+                    {
+                        "response": {
+                            "data": {"data": [{"user_id": 7, "media_type": "movie", "title": "Movie", "date": 0}]}
+                        }
+                    }
+                )
+            return FakeResponse({"response": {"result": "success"}})
+
+    monkeypatch.setattr("request_shock.clients.requests.Session", FakeSession)
 
     client = TautulliClient("http://tautulli/", "key", verify_ssl=False)
     history = client.history_for_user(username="Taylor", length=25)
     client.notify(3, "Subject", "Body")
 
-    assert calls["init"] == ("http://tautulli", "key", False, False)
-    assert calls["history"]["user"] == "Taylor"
-    assert calls["history"]["length"] == 25
+    history_call, notify_call = calls["get"]
+    assert history_call["url"] == "http://tautulli/api/v2"
+    assert history_call["params"]["apikey"] == "key"
+    assert history_call["params"]["cmd"] == "get_history"
+    assert history_call["params"]["user"] == "Taylor"
+    assert history_call["params"]["length"] == 25
+    assert history_call["verify"] is False
     assert history[0].title == "Movie"
-    assert calls["notify"] == (3, "Subject", "Body")
+    assert notify_call["params"] == {
+        "apikey": "key",
+        "cmd": "notify",
+        "notifier_id": 3,
+        "subject": "Subject",
+        "body": "Body",
+    }
