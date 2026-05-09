@@ -115,5 +115,5 @@ flowchart LR
 
 ## Related Docs
 
-- See `/home/runner/work/Reactive-Plex-Request-Limits/Reactive-Plex-Request-Limits/README.md` for setup, operations, and examples.
-- See `/home/runner/work/Reactive-Plex-Request-Limits/Reactive-Plex-Request-Limits/docs/user-request-limit-update.md` for the end-user explanation of why limits may change.
+- See [`../README.md`](../README.md) for setup, operations, and examples.
+- See [`user-request-limit-update.md`](user-request-limit-update.md) for the end-user explanation of why limits may change.
