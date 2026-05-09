@@ -1,6 +1,6 @@
 [project]
 name = "request-shock"
-version = "0.1.4"
+version = "0.2.0"
 description = "Adaptive Overseerr request limits based on Tautulli watch history"
 requires-python = ">=3.11"
 dependencies = [
