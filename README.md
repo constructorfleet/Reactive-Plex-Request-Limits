@@ -20,6 +20,8 @@ Each run does this:
 
 The score is stored in `request-shock-state.json`. Seerr/Overseerr does not know about the score; it only sees the resulting quota override.
 
+For architecture diagrams and a runtime reference, see [`docs/flow-charts.md`](docs/flow-charts.md).
+
 ## Setup
 
 ```sh
