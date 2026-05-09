@@ -1,24 +1,24 @@
 # request-shock
 
-Adaptive Overseerr request limits based on whether users actually watch what they request.
+Adaptive Seerr or Overseerr request limits based on whether users actually watch what they request.
 
-The script uses the `overseerr` Python client for Overseerr and the `tautulli` Python client for Tautulli. Overseerr is the place where per-user request quotas are changed. Tautulli is the evidence source for watch history and, optionally, the delivery mechanism for throttle notifications.
+The script uses the `overseerr` Python client against the Seerr/Overseerr-compatible API and the `tautulli` Python client for Tautulli. Seerr or Overseerr is where per-user request quotas are changed. Tautulli is the evidence source for watch history and, optionally, the delivery mechanism for throttle notifications.
 
 ## How It Works
 
 Each run does this:
 
-1. Loads users and their request history from Overseerr.
+1. Loads users and their request history from Seerr or Overseerr.
 2. Skips exempt users.
 3. Pulls each user's movie/episode watch history from Tautulli.
 4. Ignores requests that are still inside the grace period.
 5. Marks mature requests as watched or neglected.
 6. Increases the user's local shock score for neglected mature requests.
 7. Decreases the shock score by `recovery_per_run` when there are no neglected mature requests.
-8. Writes the target request limits back to Overseerr unless running with `--dry-run`.
+8. Writes the target request limits back to Seerr or Overseerr unless running with `--dry-run`.
 9. Optionally triggers configured Tautulli notification agents when the user moves into a stricter tier.
 
-The score is stored in `request-shock-state.json`. Overseerr does not know about the score; it only sees the resulting quota override.
+The score is stored in `request-shock-state.json`. Seerr/Overseerr does not know about the score; it only sees the resulting quota override.
 
 ## Setup
 
@@ -28,7 +28,22 @@ python3 -m venv .venv
 cp config.example.yml config.yml
 ```
 
-Edit `config.yml` with your Overseerr and Tautulli URLs/API keys.
+Edit `config.yml` with your Seerr and Tautulli URLs/API keys.
+
+Existing `overseerr:` configs still work. For new installs, use `seerr:`:
+
+```yaml
+seerr:
+  url: http://seerr:5055
+  api_key: replace-me
+```
+
+The script uses the same `/api/v1` endpoints for both applications:
+
+- `GET /user`
+- `GET /user/{userId}/requests`
+- `GET /user/{userId}/settings/main`
+- `POST /user/{userId}/settings/main`
 
 ## Running
 
