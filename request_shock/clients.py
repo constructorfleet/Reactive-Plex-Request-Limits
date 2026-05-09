@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 import overseerr
-from tautulli import RawAPI
+import requests
 
 from request_shock.policy import Limits, Request, Watch
 
@@ -50,20 +50,26 @@ class OverseerrClient:
 
 class TautulliClient:
     def __init__(self, base_url: str, api_key: str, verify_ssl: bool = True) -> None:
-        self._raw = RawAPI(base_url=base_url.rstrip("/"), api_key=api_key, ssl_verify=verify_ssl, verify=verify_ssl)
+        self._base_url = f"{base_url.rstrip('/')}/api/v2"
+        self._api_key = api_key
+        self._verify_ssl = verify_ssl
+        self._session = requests.Session()
 
     def history_for_user(
         self, username: str | None = None, user_id: int | None = None, length: int = 1000
     ) -> list[Watch]:
-        data = self._raw.get_history(
-            grouping=True,
-            user=username,
-            user_id=user_id,
-            media_type="movie,episode",
-            order_column="date",
-            order_direction="desc",
-            start=0,
-            length=length,
+        data = self._get(
+            {
+                "cmd": "get_history",
+                "grouping": True,
+                "user": username,
+                "user_id": user_id,
+                "media_type": "movie,episode",
+                "order_column": "date",
+                "order_direction": "desc",
+                "start": 0,
+                "length": length,
+            }
         )
         rows = data.get("data", data)
         if isinstance(rows, dict):
@@ -71,7 +77,23 @@ class TautulliClient:
         return [_to_watch(row) for row in rows]
 
     def notify(self, notifier_id: int, subject: str, body: str) -> None:
-        self._raw.notify(notifier_id=notifier_id, subject=subject, body=body)
+        self._get(
+            {
+                "cmd": "notify",
+                "notifier_id": notifier_id,
+                "subject": subject,
+                "body": body,
+            }
+        )
+
+    def _get(self, params: dict[str, Any]) -> dict[str, Any]:
+        request_params = {"apikey": self._api_key, **{key: value for key, value in params.items() if value is not None}}
+        response = self._session.get(self._base_url, params=request_params, timeout=30, verify=self._verify_ssl)
+        response.raise_for_status()
+        payload = response.json()
+        if isinstance(payload, dict) and isinstance(payload.get("response"), dict):
+            return payload["response"]
+        return payload
 
 
 def _to_request(item: Any, fallback_user_id: int) -> Request:

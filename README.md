@@ -2,7 +2,7 @@
 
 Adaptive Seerr or Overseerr request limits based on whether users actually watch what they request.
 
-The script uses the `overseerr` Python client against the Seerr/Overseerr-compatible API and the `tautulli` Python client for Tautulli. Seerr or Overseerr is where per-user request quotas are changed. Tautulli is the evidence source for watch history and, optionally, the delivery mechanism for throttle notifications.
+The script uses the `overseerr` Python client against the Seerr/Overseerr-compatible API and calls Tautulli's `/api/v2` API directly. Seerr or Overseerr is where per-user request quotas are changed. Tautulli is the evidence source for watch history and, optionally, the delivery mechanism for throttle notifications.
 
 ## How It Works
 
