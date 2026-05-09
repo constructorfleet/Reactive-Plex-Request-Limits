@@ -17,6 +17,14 @@ exempt_users:
   plex_usernames: []
   emails: []
 
+# Optional. Leave every list empty to apply the policy to every non-exempt user.
+# Populate one or more lists to run the policy only for those users.
+apply_users:
+  ids: []
+  usernames: []
+  plex_usernames: []
+  emails: []
+
 notifications:
   tautulli_notifier_ids: []
   subject: "Overseerr request limits updated"

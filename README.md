@@ -102,6 +102,7 @@ After bumping the version, the workflow tags the commit and publishes the Docker
 ```text
 ghcr.io/OWNER/REPO:latest
 ghcr.io/OWNER/REPO:<version>
+ghcr.io/OWNER/REPO:<short-sha>
 ```
 
 ## Exempt Users
@@ -121,6 +122,24 @@ exempt_users:
 ```
 
 The older `ignore_user_ids` setting still works and is treated the same as `exempt_users.ids`.
+
+## Apply Users
+
+Use `apply_users` when you want to test the policy on a small set of users before rolling it out. Matching works the same way as `exempt_users` and is case-insensitive.
+
+```yaml
+apply_users:
+  ids:
+    - 7
+  usernames:
+    - local_test_user
+  plex_usernames:
+    - PlexTestUser
+  emails:
+    - tester@example.com
+```
+
+When `apply_users` is missing, or all four lists are empty, the policy applies to every non-exempt user. When any `apply_users` list has entries, only matching users are evaluated; everyone else is skipped before requests, watch history, settings, or notifications are processed.
 
 ## Notifications
 
