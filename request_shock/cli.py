@@ -12,16 +12,22 @@ from request_shock.state import load_state, save_state, updated_entry
 
 
 def is_exempt_user(user: Any, raw_config: dict[str, Any]) -> bool:
-    exemptions = raw_config.get("exempt_users", {}) or {}
-    ignored_ids = set(raw_config.get("ignore_user_ids", [])) | set(exemptions.get("ids", []))
-    if int(user.id) in {int(user_id) for user_id in ignored_ids}:
+    exemptions = _user_match_config(raw_config.get("exempt_users", {}) or {})
+    ignored_ids = _normalized_id_set(raw_config.get("ignore_user_ids", [])) | exemptions["ids"]
+    if int(user.id) in ignored_ids:
         return True
 
-    matches = {
-        "usernames": _normalized_set(exemptions.get("usernames", [])),
-        "plex_usernames": _normalized_set(exemptions.get("plex_usernames", [])),
-        "emails": _normalized_set(exemptions.get("emails", [])),
-    }
+    return _user_matches(user, exemptions)
+
+
+def should_apply_policy_to_user(user: Any, raw_config: dict[str, Any]) -> bool:
+    apply_users = _user_match_config(raw_config.get("apply_users", {}) or {})
+    if not any(apply_users.values()):
+        return True
+    return int(user.id) in apply_users["ids"] or _user_matches(user, apply_users)
+
+
+def _user_matches(user: Any, matches: dict[str, set[Any]]) -> bool:
     return (
         _normalize(getattr(user, "username", None)) in matches["usernames"]
         or _normalize(getattr(user, "plex_username", None)) in matches["plex_usernames"]
@@ -84,6 +90,10 @@ def main() -> int:
             username = _display_name(user)
             if is_exempt_user(user, raw_config):
                 print(f"skip user={username}: exempt")
+                continue
+
+            if not should_apply_policy_to_user(user, raw_config):
+                print(f"skip user={username}: not in apply_users")
                 continue
 
             if not username:
@@ -160,6 +170,19 @@ def _tier(score: int, config: PolicyConfig) -> int:
 
 def _normalized_set(values: list[Any]) -> set[str]:
     return {_normalize(value) for value in values}
+
+
+def _user_match_config(config: dict[str, Any]) -> dict[str, set[Any]]:
+    return {
+        "ids": _normalized_id_set(config.get("ids", [])),
+        "usernames": _normalized_set(config.get("usernames", [])),
+        "plex_usernames": _normalized_set(config.get("plex_usernames", [])),
+        "emails": _normalized_set(config.get("emails", [])),
+    }
+
+
+def _normalized_id_set(values: list[Any]) -> set[int]:
+    return {int(value) for value in values}
 
 
 def _normalize(value: Any) -> str:

@@ -7,6 +7,7 @@ from request_shock.cli import (
     build_throttle_message,
     is_exempt_user,
     main,
+    should_apply_policy_to_user,
     should_notify_throttle,
 )
 from request_shock.policy import Limits, PolicyConfig, Request
@@ -22,7 +23,7 @@ class FakeUser:
 
 def test_exempt_user_can_be_matched_by_id_username_plex_username_or_email():
     config = {
-        "ignore_user_ids": [9],
+        "ignore_user_ids": ["9"],
         "exempt_users": {
             "ids": [10],
             "usernames": ["local_user"],
@@ -31,12 +32,31 @@ def test_exempt_user_can_be_matched_by_id_username_plex_username_or_email():
         },
     }
 
-    assert is_exempt_user(FakeUser(id=9), config)
+    assert is_exempt_user(FakeUser(id="9"), config)
     assert is_exempt_user(FakeUser(id=10), config)
     assert is_exempt_user(FakeUser(id=11, username="LOCAL_USER"), config)
     assert is_exempt_user(FakeUser(id=12, plex_username="plexuser"), config)
     assert is_exempt_user(FakeUser(id=13, email="FRIEND@example.com"), config)
     assert not is_exempt_user(FakeUser(id=14, username="other"), config)
+
+
+def test_apply_users_can_limit_policy_scope_by_id_username_plex_username_or_email():
+    unrestricted = {}
+    scoped = {
+        "apply_users": {
+            "ids": [10],
+            "usernames": ["local_user"],
+            "plex_usernames": ["PlexUser"],
+            "emails": ["friend@example.com"],
+        },
+    }
+
+    assert should_apply_policy_to_user(FakeUser(id=99, username="anyone"), unrestricted)
+    assert should_apply_policy_to_user(FakeUser(id=10), scoped)
+    assert should_apply_policy_to_user(FakeUser(id=11, username="LOCAL_USER"), scoped)
+    assert should_apply_policy_to_user(FakeUser(id=12, plex_username="plexuser"), scoped)
+    assert should_apply_policy_to_user(FakeUser(id=13, email="FRIEND@example.com"), scoped)
+    assert not should_apply_policy_to_user(FakeUser(id=14, username="other"), scoped)
 
 
 def test_notify_throttle_only_when_moving_to_stricter_limits():
@@ -154,6 +174,84 @@ policy:
     assert "skip user=admin: exempt" in output
     assert "skip user 2: no username available" in output
     assert "dry run: would notify user=Taylor" in output
+    assert not state.exists()
+
+
+def test_main_dry_run_only_evaluates_configured_apply_users(monkeypatch, tmp_path, capsys):
+    config = tmp_path / "config.yml"
+    state = tmp_path / "state.json"
+    calls = {"requests": []}
+    config.write_text(
+        """
+overseerr:
+  url: http://overseerr
+  api_key: overseerr-key
+tautulli:
+  url: http://tautulli
+  api_key: tautulli-key
+apply_users:
+  usernames:
+    - Taylor
+policy:
+  movie_grace_days: 1
+""",
+        encoding="utf-8",
+    )
+
+    class FakeOverseerrClient:
+        def __init__(self, url, api_key):
+            pass
+
+        def list_users(self):
+            return [
+                FakeUser(id=7, username="Taylor"),
+                FakeUser(id=8, username="Jordan"),
+            ]
+
+        def list_requests(self, user_id):
+            calls["requests"].append(user_id)
+            return [
+                Request(
+                    request_id=42,
+                    user_id=user_id,
+                    media_type="movie",
+                    title="Movie",
+                    created_at=datetime.now(UTC) - timedelta(days=10),
+                )
+            ]
+
+        def get_user_settings(self, user_id):
+            return {
+                "movieQuotaLimit": 5,
+                "movieQuotaDays": 3,
+                "tvQuotaLimit": 1,
+                "tvQuotaDays": 7,
+            }
+
+        def close(self):
+            pass
+
+    class FakeTautulliClient:
+        def __init__(self, url, api_key, verify_ssl=True):
+            pass
+
+        def history_for_user(self, username, length):
+            return []
+
+    monkeypatch.setattr(cli, "OverseerrClient", FakeOverseerrClient)
+    monkeypatch.setattr(cli, "TautulliClient", FakeTautulliClient)
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["request-shock", "--config", str(config), "--state", str(state), "--dry-run"],
+    )
+
+    assert main() == 0
+
+    output = capsys.readouterr().out
+    assert calls["requests"] == [7]
+    assert "user=Taylor score=0->1" in output
+    assert "skip user=Jordan: not in apply_users" in output
     assert not state.exists()
 
 
