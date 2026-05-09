@@ -1,6 +1,8 @@
-overseerr:
+seerr:
   url: "http://localhost:5055"
   api_key: "replace-me"
+
+# Existing configs can keep using `overseerr:` with the same url/api_key fields.
 
 tautulli:
   url: "http://localhost:8181"

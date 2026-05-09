@@ -7,6 +7,7 @@ from request_shock.cli import (
     build_throttle_message,
     is_exempt_user,
     main,
+    request_manager_config,
     should_apply_policy_to_user,
     should_notify_throttle,
 )
@@ -89,14 +90,35 @@ def test_build_throttle_message_uses_configured_template():
     assert body == "Ah ah ah, Taylor. Movies: 1/14 days. TV: 1/30 days."
 
 
+def test_request_manager_config_prefers_seerr_and_keeps_overseerr_compatibility():
+    assert request_manager_config({"seerr": {"url": "http://seerr", "api_key": "seerr-key"}}) == {
+        "url": "http://seerr",
+        "api_key": "seerr-key",
+    }
+    assert request_manager_config({"overseerr": {"url": "http://overseerr", "api_key": "overseerr-key"}}) == {
+        "url": "http://overseerr",
+        "api_key": "overseerr-key",
+    }
+    assert request_manager_config(
+        {
+            "seerr": {"url": "http://seerr", "api_key": "seerr-key"},
+            "overseerr": {"url": "http://overseerr", "api_key": "overseerr-key"},
+        }
+    ) == {
+        "url": "http://seerr",
+        "api_key": "seerr-key",
+    }
+
+
 def test_main_dry_run_skips_exempt_and_reports_notification(monkeypatch, tmp_path, capsys):
     config = tmp_path / "config.yml"
     state = tmp_path / "state.json"
+    calls = {}
     config.write_text(
         """
-overseerr:
-  url: http://overseerr
-  api_key: overseerr-key
+seerr:
+  url: http://seerr
+  api_key: seerr-key
 tautulli:
   url: http://tautulli
   api_key: tautulli-key
@@ -114,8 +136,7 @@ policy:
 
     class FakeOverseerrClient:
         def __init__(self, url, api_key):
-            self.url = url
-            self.api_key = api_key
+            calls["request_manager"] = (url, api_key)
 
         def list_users(self):
             return [
@@ -171,6 +192,7 @@ policy:
     assert main() == 0
 
     output = capsys.readouterr().out
+    assert calls["request_manager"] == ("http://seerr", "seerr-key")
     assert "skip user=admin: exempt" in output
     assert "skip user 2: no username available" in output
     assert "dry run: would notify user=Taylor" in output

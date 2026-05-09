@@ -63,6 +63,12 @@ def build_throttle_message(
     return subject_template.format(**values), body_template.format(**values)
 
 
+def request_manager_config(raw_config: dict[str, Any]) -> dict[str, Any]:
+    if "seerr" in raw_config:
+        return raw_config["seerr"]
+    return raw_config["overseerr"]
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Adapt Overseerr request limits from Tautulli watch history.")
     parser.add_argument("--config", type=Path, default=Path("config.yml"))
@@ -71,7 +77,7 @@ def main() -> int:
     args = parser.parse_args()
 
     raw_config, policy = load_config(args.config)
-    overseerr_config = raw_config["overseerr"]
+    overseerr_config = request_manager_config(raw_config)
     tautulli_config = raw_config["tautulli"]
     notification_config = raw_config.get("notifications", {}) or {}
     notifier_ids = [int(notifier_id) for notifier_id in notification_config.get("tautulli_notifier_ids", [])]
